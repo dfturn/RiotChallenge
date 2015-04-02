@@ -1,0 +1,4 @@
+hourago = (calendar.timegm(datetime.datetime.today().timetuple())-3600)
+hourago -= hourago % 300
+/api/lol/{region}/v4.1/game/ids
+returns list of game ids
