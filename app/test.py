@@ -2,8 +2,7 @@ from __future__ import division
 import json
 import astar
 from cached_paths import CachedPaths
-import time
-
+import numpy as np
 
 my_grid = astar.read_grid("map.txt")    
     
@@ -77,11 +76,13 @@ class Ward:
         self.x = None
         self.y = None
         
-def main():
+def run_test():
+    with open("C:/git_stuff/riot_challenge/example_data/example_match.json") as f:
+        data = json.load(f)
+        
+    return analyze_match(data)
     
-
-    with open("example_data/example_match.json") as json_data:
-        data = json.loads(json_data.read())
+def analyze_match(data, granularity=5000):
 
     pos_data = { int(pid) : [PlayerLocation(my_grid, 0, d["position"])] for pid, d in data["timeline"]["frames"][0]["participantFrames"].iteritems() }
 
@@ -172,18 +173,37 @@ def main():
                 full_path.append((node[0], node[1], time_start))
                 time_start += time_inc
                 
-        pos_data[pid] = [PlayerLocation(my_grid, p[2], x=p[0], y=p[1], scaled=True) for p in full_path]
-            
-    #print 
-    cached_paths.pickle()
-
+        #ORIGINAL!
+        #pos_data[pid] = [PlayerLocation(my_grid, p[2], x=p[0], y=p[1], scaled=True) for p in full_path]
+        
+        interp_pos = []
+        index = 0
+        for t in range(0, int(full_path[-1][2]), granularity):
+            while index < len(full_path) and full_path[index][2] <= t:
+                index += 1
+               
+            a = np.array([[full_path[index-1][0], full_path[index-1][1]],
+                           [full_path[index][0], full_path[index][1]]])
+            rng = full_path[index][2] - full_path[index-1][2]
+            w1 = (t-full_path[index-1][2])/rng
+            w2 = (full_path[index][2]-t)/rng
+            weights = [w1, w2]
+            avg = np.append(np.average(a, 0, weights), t).tolist()
+            #print avg
+            interp_pos.append(avg)
+        pos_data[pid] = [[Position.scaleX(p[0], to=False), Position.scaleY(p[1], to=False), p[2]] for p in interp_pos]
+        #pos_data[pid] = interp_pos
+    
+    
+    return pos_data
+    
     # Prints where we ran into walls
     #print [[Position.scaleX(w[0], False), Position.scaleY(w[1], False)] for w in wall_locs]
 
     # Prints all our estimated locations for all players
     for pid, locs in pos_data.iteritems():
-       pass #print [[l.pos.x, l.pos.y] for l in locs]
-            
+       print locs
+    return
             
 
     diffs = []
@@ -217,7 +237,3 @@ def main():
         plt.plot(points[simplex,0], points[simplex,1], 'k-')
     #plt.show()
     #print convex
-    
-start_time = time.clock()
-main()
-print time.clock() - start_time, "seconds"

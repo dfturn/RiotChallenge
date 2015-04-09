@@ -1,22 +1,21 @@
 import astar
-from itertools import permutations
-import pickle
 import os
+from app import mongo
 
 class CachedPaths:
     def __init__(self, grid):
-        self.pickle_file = "caches/paths.bin"
         self.grid = grid
-        
-        if os.path.exists(self.pickle_file):
-            with open(self.pickle_file, 'rb') as f:
-                self.dict = pickle.load(f)
-        else:
-            self.dict = {}
             
     def getPath(self, start, end):
-        if (start, end) in self.dict:
-            path = self.dict[(start, end)]
+        query = {}
+        query["sx"] = start[0]
+        query["sy"] = start[1]
+        query["ex"] = end[0]
+        query["ey"] = end[1]
+        #cursor = mongo.db.paths.find(query)
+        
+        if False:#cursor.count() > 0:
+            path = cursor[0]["path"]
         else:
             came_from, cost_so_far = astar.a_star_search(self.grid, start, end)
             path = [end]
@@ -32,10 +31,7 @@ class CachedPaths:
             finally:
                 path.reverse()
 
-            self.dict[(start, end)] = path
+            query["path"] = path
+            #mongo.db.paths.insert(query)
 
         return path
-        
-    def pickle(self):
-        with open(self.pickle_file, 'wb') as f:
-            pickle.dump(self.dict, f)

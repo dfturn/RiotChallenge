@@ -1,0 +1,3 @@
+[submodule "submodules/riotwatcher"]
+	path = submodules/riotwatcher
+	url = https://github.com/pseudonym117/Riot-Watcher.git

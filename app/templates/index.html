@@ -1,0 +1,70 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<div id="map">
+</div>
+<script src="http://d3js.org/d3.v3.min.js"></script>   
+<script>
+var posses = {{ frames|tojson }};
+
+    // Domain for the current Summoner's Rift on the in-game mini-map
+var domain = {
+            min: {x: -120, y: -120},
+            max: {x: 14870, y: 14980}
+    },
+    width = 512,
+    height = 512,
+    bg = "static/img/minimap-ig.png",
+    xScale, yScale, svg;
+
+xScale = d3.scale.linear()
+  .domain([domain.min.x, domain.max.x])
+  .range([0, width]);
+
+yScale = d3.scale.linear()
+  .domain([domain.min.y, domain.max.y])
+  .range([height, 0]);
+
+svg = d3.select("#map").append("svg:svg")
+    .attr("width", width)
+    .attr("height", height);
+
+svg.append('image')
+    .attr('xlink:href', bg)
+    .attr('x', '0')
+    .attr('y', '0')
+    .attr('width', width)
+    .attr('height', height);
+
+var imgSize = 20;
+nodes = new Array();
+for (var key in posses) {
+    console.log(key);
+    nodes[key] = svg.append("image")
+        .data(posses[key][0])
+        .attr('xlink:href', "static/img/champ_icons/latest/LeeSin_red.png")
+        .attr('width', imgSize)
+        .attr('height', imgSize)
+        .attr("class", "image");
+}
+        
+var move = function(key, i)
+{
+    if (i > posses[key].length ) { return; }
+    nodes[key]
+        .transition()
+        .duration(5000/10)
+        .ease("linear")
+        .attr({
+            x: function (d) { return xScale(posses[key][i][0]) - imgSize/2; },
+            y: function (d) { return yScale(posses[key][i][1]) - imgSize/2; }
+        })
+        .each("end",function() { move(key, i+1); });
+}
+
+for (var key in nodes) {
+    move(key, 0);
+}
+</script>   
+{% endblock %}

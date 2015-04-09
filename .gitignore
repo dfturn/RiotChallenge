@@ -1,1 +1,3 @@
 *.pyc
+key.txt
+app/static/img/champ_icons/*

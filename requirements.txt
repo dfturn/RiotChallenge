@@ -1,5 +1,2 @@
-MyApp
-TODO:
-riotwatcher
-Flask (etc)
-MongoDB
+Flask-PyMongo
+scipy
