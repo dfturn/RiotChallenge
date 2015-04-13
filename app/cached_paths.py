@@ -12,9 +12,9 @@ class CachedPaths:
         query["sy"] = start[1]
         query["ex"] = end[0]
         query["ey"] = end[1]
-        #cursor = mongo.db.paths.find(query)
+        cursor = mongo.db.paths.find(query)
         
-        if False:#cursor.count() > 0:
+        if cursor.count() > 0:
             path = cursor[0]["path"]
         else:
             came_from, cost_so_far = astar.a_star_search(self.grid, start, end)
@@ -32,6 +32,6 @@ class CachedPaths:
                 path.reverse()
 
             query["path"] = path
-            #mongo.db.paths.insert(query)
+            mongo.db.paths.insert(query)
 
         return path

@@ -6,7 +6,18 @@
 </div>
 <script src="http://d3js.org/d3.v3.min.js"></script>   
 <script>
+String.prototype.format = function() {
+    var s = this,
+        i = arguments.length;
+
+    while (i--) {
+        s = s.replace(new RegExp('\\{' + i + '\\}', 'gm'), arguments[i]);
+    }
+    return s;
+};
+
 var posses = {{ frames|tojson }};
+var champs = {{ champs|tojson }};
 
     // Domain for the current Summoner's Rift on the in-game mini-map
 var domain = {
@@ -40,10 +51,9 @@ svg.append('image')
 var imgSize = 20;
 nodes = new Array();
 for (var key in posses) {
-    console.log(key);
     nodes[key] = svg.append("image")
         .data(posses[key][0])
-        .attr('xlink:href', "static/img/champ_icons/latest/LeeSin_red.png")
+        .attr('xlink:href', "static/img/champ_icons/latest/{0}_{1}.png".format(champs[key], key > 5 ? "red" : "blue"))
         .attr('width', imgSize)
         .attr('height', imgSize)
         .attr("class", "image");

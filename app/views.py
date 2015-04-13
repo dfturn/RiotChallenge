@@ -36,10 +36,12 @@ def index(match_id=1786135028):
         mongo.db.matches.insert(match)
         
     frames = analyze_match(match)
+    player_movement = {pid : frames[pid] for pid in range(1,11)}
     
     return render_template('index.html',
                            title=match_id,
-                           frames=frames)
+                           frames=player_movement,
+                           champs=frames["champs"])
 
 # @app.route('/search', methods=['POST'])
 # @login_required

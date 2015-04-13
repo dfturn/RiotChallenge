@@ -1,2 +1,3 @@
 Flask-PyMongo
 scipy
+numpy

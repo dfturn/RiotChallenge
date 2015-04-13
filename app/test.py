@@ -3,6 +3,7 @@ import json
 import astar
 from cached_paths import CachedPaths
 import numpy as np
+import common_data as cd
 
 my_grid = astar.read_grid("map.txt")    
     
@@ -185,8 +186,8 @@ def analyze_match(data, granularity=5000):
             a = np.array([[full_path[index-1][0], full_path[index-1][1]],
                            [full_path[index][0], full_path[index][1]]])
             rng = full_path[index][2] - full_path[index-1][2]
-            w1 = (t-full_path[index-1][2])/rng
-            w2 = (full_path[index][2]-t)/rng
+            w1 = (t-full_path[index][2])/rng
+            w2 = 1-w1
             weights = [w1, w2]
             avg = np.append(np.average(a, 0, weights), t).tolist()
             #print avg
@@ -195,6 +196,7 @@ def analyze_match(data, granularity=5000):
         #pos_data[pid] = interp_pos
     
     
+    pos_data["champs"] = {p["participantId"] : cd.CHAMPS_BY_ID["keys"][str(p["championId"])] for p in data["participants"]}
     return pos_data
     
     # Prints where we ran into walls

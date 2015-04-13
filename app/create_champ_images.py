@@ -44,7 +44,7 @@ def main():
             
             colors = ["red", "blue"]
             for c in colors:
-                draw.ellipse(circle, outline="red")
+                draw.ellipse(circle, outline=c)
                 filename = FOLDER_FORMAT.format("{v}{sep}{n}_{color}.png")
                 im.save(filename.format(
                     v=cd.CHAMPS_BY_ID["version"], sep=os.sep, n=name, color=c))
