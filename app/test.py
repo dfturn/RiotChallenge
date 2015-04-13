@@ -4,8 +4,10 @@ import astar
 from cached_paths import CachedPaths
 import numpy as np
 import common_data as cd
+import os
 
-my_grid = astar.read_grid("map.txt")    
+dir = os.path.dirname(__file__)
+my_grid = astar.read_grid(os.path.join(dir, "../map.txt"))
     
 class Position:
     def __init__(self, grid, x, y, scaled=False):

@@ -6,7 +6,10 @@ import os
 import shutil
 import common_data as cd
 
-CHAMP_ICONS_ROOT_FOLDER = "app/static/img/champ_icons"
+
+dir = os.path.dirname(__file__)
+
+CHAMP_ICONS_ROOT_FOLDER = os.path.join(dir, "static/img/champ_icons")
 FOLDER_FORMAT = CHAMP_ICONS_ROOT_FOLDER + os.sep + "{0}"
 CHAMP_ICONS_FOLDER = FOLDER_FORMAT.format("latest")
 
