@@ -1,3 +1,4 @@
 Flask-PyMongo
+Flask-WTF
 scipy
 numpy

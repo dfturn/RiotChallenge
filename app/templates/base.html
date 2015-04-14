@@ -16,6 +16,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
+      <form action="" method="post" name="login">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.match_id(size=80) }}
+            {% for error in form.match_id.errors %}
+              <span style="color: red;">[{{error}}]</span>
+            {% endfor %}
+        </p>
+        <p><input type="submit" value="Analyze"></p>
+      </form>
+  
       {% block content %}{% endblock %}
   </body>
 </html>

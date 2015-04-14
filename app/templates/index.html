@@ -18,6 +18,7 @@ String.prototype.format = function() {
 
 var posses = {{ frames|tojson }};
 var champs = {{ champs|tojson }};
+var hulls = {{ hulls|tojson }};
 
     // Domain for the current Summoner's Rift on the in-game mini-map
 var domain = {
@@ -58,23 +59,61 @@ for (var key in posses) {
         .attr('height', imgSize)
         .attr("class", "image");
 }
+
+var lineFunction = d3.svg.line()
+                          .x(function(d) { return xScale(d[0]); })
+                          .y(function(d) { return yScale(d[1]); })
+                          .interpolate("linear");
+
+areas = new Array();
+for (var key in hulls) {
+    areas[key] = svg.append("path")
+                                .attr("d", lineFunction(hulls[key][0]))
+                                .attr("stroke", key == 100 ? "blue" : "red")
+                                .attr("stroke-width", 2)
+                                .attr("fill", key == 100 ? "blue" : "red")
+                                .attr("opacity", 0.25);
+}
         
-var move = function(key, i)
+var move_node = function(locs, item, key, i)
 {
-    if (i > posses[key].length ) { return; }
-    nodes[key]
+    if (i >= locs[key].length ) { return; }
+    item[key]
         .transition()
         .duration(5000/10)
         .ease("linear")
         .attr({
-            x: function (d) { return xScale(posses[key][i][0]) - imgSize/2; },
-            y: function (d) { return yScale(posses[key][i][1]) - imgSize/2; }
+            x: function (d) { return xScale(locs[key][i][0]) - imgSize/2; },
+            y: function (d) { return yScale(locs[key][i][1]) - imgSize/2; }
         })
-        .each("end",function() { move(key, i+1); });
+        .each("end",function() { move_node(locs, item, key, i+1); });
+}
+
+var move_area = function(key, i) {
+  if (i >= hulls[key].length ) { return; }
+  areas[key]
+    .transition()
+      .delay(5000/10)
+      .attr("d", lineFunction(hulls[key][i]))
+      .ease("linear")
+      .each("end", function() { move_area(key, i+1) });
+}
+
+
+
+var move_area_inst = function(key, i) {
+  if (i >= hulls[key].length ) { return; }
+  areas[key]
+      .attr("d", lineFunction(hulls[key][i]));
+  setTimeout(function() { move_area_inst(key, i+1); }, 5000/10);
 }
 
 for (var key in nodes) {
-    move(key, 0);
+    move_node(posses, nodes, key, 0);
+}
+
+for (var key in areas) {
+    move_area_inst(key, 0);
 }
 </script>   
 {% endblock %}

@@ -5,6 +5,8 @@ from cached_paths import CachedPaths
 import numpy as np
 import common_data as cd
 import os
+from scipy.spatial import ConvexHull
+from scipy.spatial.distance import euclidean
 
 dir = os.path.dirname(__file__)
 my_grid = astar.read_grid(os.path.join(dir, "../map.txt"))
@@ -79,11 +81,24 @@ class Ward:
         self.x = None
         self.y = None
         
+class TowerDestroyed:
+    def __init__(self, ts, pos):
+        self.x = pos["x"]
+        self.y = pos["y"]
+        self.time = ts
+        
 def run_test():
     with open("C:/git_stuff/riot_challenge/example_data/example_match.json") as f:
         data = json.load(f)
         
     return analyze_match(data)
+    
+TEAM1 = 100
+TEAM2 = 200
+def get_opposing_team(team_id):
+    if team_id == TEAM1:
+        return TEAM2
+    return TEAM1
     
 def analyze_match(data, granularity=5000):
 
@@ -91,13 +106,14 @@ def analyze_match(data, granularity=5000):
 
     wards = {}
     wards_destroyed = { 0 : [] }
+    towers_destroyed = {TEAM1 : [], TEAM2 : []}
 
     levels = { pid : 1 for pid in range(1,11) }
 
-    towers = {100 : set([(5846, 6396), (5048, 4812), (981, 10441), (10504, 1029), (6919, 1483), (1512, 6699), \
-                        (3651, 3696), (1169, 4287), (4281, 1253), (1748, 2270), (2177, 1807)]),
-              200 : set([(4318, 13875), (8955, 8510), (7943, 13411), (10481, 13650), (9767, 10113), (11134, 11207), \
-                        (4505, 13866), (8226, 13327), (10572, 13624), (12612, 13052), (13084, 12611)])}
+    towers = {TEAM1 : set([(5846, 6396), (5048, 4812), (981, 10441), (10504, 1029), (6919, 1483), (1512, 6699), \
+                        (3651, 3696), (1169, 4287), (4281, 1253), (1748, 2270), (2177, 1807), (-120, -120)]),
+              TEAM2 : set([(4318, 13875), (8955, 8510), (7943, 13411), (10481, 13650), (9767, 10113), (11134, 11207), \
+                        (4505, 13866), (8226, 13327), (10572, 13624), (12612, 13052), (13084, 12611), (13866, 4505), (14870, 14980)])}
                         
 
     for frame in data["timeline"]["frames"]:
@@ -107,6 +123,9 @@ def analyze_match(data, granularity=5000):
                    e["eventType"] == "BUILDING_KILL" or \
                    e["eventType"] == "ELITE_MONSTER_KILL": # TODO: Add in "back" handling -- when they buy items it's a teleport
 
+                    if e["eventType"] == "BUILDING_KILL" and e["buildingType"] == "TOWER_BUILDING":
+                        towers_destroyed[e["teamId"]].append(TowerDestroyed(e["timestamp"], e["position"]))
+                   
                     loc = PlayerLocation(my_grid, e["timestamp"], e["position"])
                     
                     if "victimId" in e and e["victimId"] != 0:
@@ -132,13 +151,18 @@ def analyze_match(data, granularity=5000):
                     duration = 3 * 60 * 1000
                     if e["wardType"] == "YELLOW_TRINKET" and levels[pid] < 9:
                         duration /= 3
+                    elif e["wardType"] == "VISION_WARD":
+                        duration = float("inf")
                         
                     wards[pid].append(Ward(e["timestamp"], e["wardType"], duration))
+                        
+                    wards_destroyed[0].append(Ward(e["timestamp"]+duration, e["wardType"], 0))
                 elif e["eventType"] == "WARD_KILL":
                     pid = e["killerId"]
                     if pid not in wards_destroyed:
                         wards_destroyed[pid] = []
-                    wards_destroyed[pid].append(e["timestamp"])
+                        
+                    wards_destroyed[pid].append(Ward(e["timestamp"], e["wardType"], 0))
                 elif e["eventType"] == "ITEM_PURCHASED":
                     pid = e["participantId"]
                     if pos_data[pid][-1].time <= e["timestamp"]: # Make sure they're not dead
@@ -199,45 +223,110 @@ def analyze_match(data, granularity=5000):
     
     
     pos_data["champs"] = {p["participantId"] : cd.CHAMPS_BY_ID["keys"][str(p["championId"])] for p in data["participants"]}
-    return pos_data
+
     
     # Prints where we ran into walls
     #print [[Position.scaleX(w[0], False), Position.scaleY(w[1], False)] for w in wall_locs]
 
     # Prints all our estimated locations for all players
     for pid, locs in pos_data.iteritems():
-       print locs
-    return
+       pass#print locs
             
 
-    diffs = []
     for pid, ws in wards.iteritems():
-        #print pid, len(ws)
         for w in ws:
             # TODO: Improve this, perhaps look at nearby bushes
-            loc = min(pos_data[pid], key=lambda x:abs(x.time-w.time))
-            # Prints estimated ward locations
-            w.x = loc.pos.x
-            w.y = loc.pos.y
-            #print [loc.pos.x, loc.pos.y], ","
-            diffs.append(abs(min(pos_data[pid], key=lambda x:abs(x.time-w.time)).time - w.time))
+            #print w, pos_data[pid][0]
+            loc = min(pos_data[pid], key=lambda x:abs(x[2]-w.time))
+            # Gets estimated ward locations
+            w.x = loc[0]
+            w.y = loc[1]
             
-    #print diffs
+    for pid, ws in wards_destroyed.iteritems():
+        if pid == 0:
+            continue
+            
+        rng = range(1,6)
+        if pid <= 5:
+            rng = range(6,11)
+        for w in ws:
+            loc = min(pos_data[pid], key=lambda x:abs(x[2]-w.time))
+            
+            min_dist = float("inf")
+            min_w = None
+            for enemy in rng:
+                for w_place in wards[enemy]:
+                    if w_place.type == w.type:
+                        diff = w.time - w_place.time
+                        if diff >=0 and diff < w_place.duration:
+                            dist = euclidean([w_place.x, w_place.y], [loc[0], loc[1]])
+                            if dist < min_dist:
+                                min_w = w_place
+            min_w.duration = w.time - min_w.time
+            # Gets estimated ward locations
+            #w.x = min_w.x
+            #w.y = min_w.y
+            
+    points = {TEAM1 : [], 200 : []}
+    for ts in range(0, data["matchDuration"] * 1000, granularity):
+        t1_pts = set()
+        for pid in range(1,6):
+            for w in wards[pid]:
+                if w.time < ts and w.time + w.duration > ts:
+                    t1_pts.add((w.x, w.y))
+                elif w.time > ts:
+                    break
+            
+        t2_pts = set()
+        for pid in range(6,11):
+            for w in wards[pid]:
+                if w.time < ts and w.time + w.duration > ts:
+                    t2_pts.add((w.x, w.y))
+                elif w.time > ts:
+                    break
+                    
+                    
+        for team, tower in towers_destroyed.iteritems():
+            for t in tower:
+                if t.time < ts and (t.x, t.y) in towers[get_opposing_team(team)]:
+                    towers[get_opposing_team(team)].remove((t.x, t.y))
+                    
+        # Now create fake towers at the edges of the map
+        # Find the max x and max y for team 1
+        max_x = max(towers[100], key=lambda x:x[0])
+        max_y = max(towers[100], key=lambda x:x[1])
+        fake_towers1 = set([(max_x[0], -120), (-120, max_y[1])])
+            
+        # Find the min x and min y for team 2
+        min_x = min(towers[200], key=lambda x:x[0])
+        min_y = min(towers[200], key=lambda x:x[1])
+        fake_towers2 = set([(min_x[0], 14980), (14870, min_y[1])])
+    
+        # Get the convex hull
+        hull_test1 = np.array(list(t1_pts | towers[TEAM1] | fake_towers1))
+        hull_test2 = np.array(list(t2_pts | towers[TEAM2] | fake_towers2))
+        
+        hull1 = ConvexHull(hull_test1)
+        hull2 = ConvexHull(hull_test2)
+        
+        convex1 = [[hull_test1[v,0], hull_test1[v,1]] for v in hull1.vertices]
+        convex2 = [[hull_test2[v,0], hull_test2[v,1]] for v in hull2.vertices]
+        
+        points[TEAM1].append(convex1)
+        points[TEAM2].append(convex2)
+       
 
-
-
-    from scipy.spatial import ConvexHull
-    import numpy
-    print 
     #print {(pid, pid) for pid, wlist in wards.iteritems() for w in wlist if pid in range(1,6)}
-    points = numpy.array(list(towers[100] | {(w.x, w.y) for pid, wlist in wards.iteritems() for w in wlist if pid in range(1,6)}))
+    #points = np.array(list(towers[100] | {(w.x, w.y) for pid, wlist in wards.iteritems() for w in wlist if pid in range(1,6)}))
     #print points
-    hull = ConvexHull(points)
-    import matplotlib.pyplot as plt
-    plt.plot(points[:,0], points[:,1], 'o')
-    convex = [[points[v,0], points[v,1]] for v in hull.vertices]
-    for simplex in hull.simplices:
+    #hull = ConvexHull(points)
+    #import matplotlib.pyplot as plt
+    #plt.plot(points[:,0], points[:,1], 'o')
+    #convex = [[points[v,0], points[v,1]] for v in hull.vertices]
+    #for simplex in hull.simplices:
         #print simplex
-        plt.plot(points[simplex,0], points[simplex,1], 'k-')
+        #plt.plot(points[simplex,0], points[simplex,1], 'k-')
     #plt.show()
     #print convex
+    pos_data["hulls"] = points
+    return pos_data

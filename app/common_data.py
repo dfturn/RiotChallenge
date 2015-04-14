@@ -4,7 +4,7 @@ import os
 dir = os.path.dirname(__file__)
 
 api = None
-with open(os.path.join(dir, "../../key.txt")) as f:
+with open(os.path.join(dir, "../key.txt")) as f:
     api = f.readline().strip()
 watcher = watcher.MyWatcher(api)
 
