@@ -2,10 +2,36 @@
 {% extends "base.html" %}
 
 {% block content %}
+<input type="button" value="Pause" onclick="pause()">
+<input type="button" value="Resume" onclick="resume()">
+<p id="Timer"></p><br/>
 <div id="map">
 </div>
-<script src="http://d3js.org/d3.v3.min.js"></script>   
+<script src="/static/js/d3.js"></script>
 <script>
+// From https://developer.mozilla.org/en-US/docs/Web/Guide/User_experience/Using_the_Page_Visibility_API
+// Set the name of the hidden property and the change event for visibility
+var hidden, visibilityChange; 
+if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support 
+  hidden = "hidden";
+  visibilityChange = "visibilitychange";
+} else if (typeof document.mozHidden !== "undefined") {
+  hidden = "mozHidden";
+  visibilityChange = "mozvisibilitychange";
+} else if (typeof document.msHidden !== "undefined") {
+  hidden = "msHidden";
+  visibilityChange = "msvisibilitychange";
+} else if (typeof document.webkitHidden !== "undefined") {
+  hidden = "webkitHidden";
+  visibilityChange = "webkitvisibilitychange";
+}
+
+if (!(typeof document.addEventListener === "undefined" || 
+  typeof document[hidden] === "undefined")) {
+  // Handle page visibility change   
+  document.addEventListener(visibilityChange, handleVisibilityChange, false);
+}
+
 String.prototype.format = function() {
     var s = this,
         i = arguments.length;
@@ -20,7 +46,7 @@ var posses = {{ frames|tojson }};
 var champs = {{ champs|tojson }};
 var hulls = {{ hulls|tojson }};
 
-    // Domain for the current Summoner's Rift on the in-game mini-map
+// Domain for the current Summoner's Rift on the in-game mini-map
 var domain = {
             min: {x: -120, y: -120},
             max: {x: 14870, y: 14980}
@@ -74,46 +100,77 @@ for (var key in hulls) {
                                 .attr("fill", key == 100 ? "blue" : "red")
                                 .attr("opacity", 0.25);
 }
+
+var MS_STEP_SIZE = 5000;
+var SPEEDUP = 10;
         
-var move_node = function(locs, item, key, i)
+var move_node = function(key, i)
 {
-    if (i >= locs[key].length ) { return; }
-    item[key]
+    if (paused || i >= posses[key].length )
+    { 
+        index = i;
+        return;
+    }
+    nodes[key]
         .transition()
-        .duration(5000/10)
+        .duration(MS_STEP_SIZE/SPEEDUP)
         .ease("linear")
         .attr({
-            x: function (d) { return xScale(locs[key][i][0]) - imgSize/2; },
-            y: function (d) { return yScale(locs[key][i][1]) - imgSize/2; }
+            x: function (d) { return xScale(posses[key][i][0]) - imgSize/2; },
+            y: function (d) { return yScale(posses[key][i][1]) - imgSize/2; }
         })
-        .each("end",function() { move_node(locs, item, key, i+1); });
+        .each("end",function() { move_node(key, i+1); });
 }
-
-var move_area = function(key, i) {
-  if (i >= hulls[key].length ) { return; }
-  areas[key]
-    .transition()
-      .delay(5000/10)
-      .attr("d", lineFunction(hulls[key][i]))
-      .ease("linear")
-      .each("end", function() { move_area(key, i+1) });
-}
-
-
 
 var move_area_inst = function(key, i) {
-  if (i >= hulls[key].length ) { return; }
+  if (paused || i >= hulls[key].length ) { return; }
   areas[key]
       .attr("d", lineFunction(hulls[key][i]));
-  setTimeout(function() { move_area_inst(key, i+1); }, 5000/10);
+  setTimeout(function() { move_area_inst(key, i+1); }, MS_STEP_SIZE/SPEEDUP);
 }
 
-for (var key in nodes) {
-    move_node(posses, nodes, key, 0);
+var updateTimer = function(i) {
+    if (paused || i >= posses[1].length ) { return; }
+    
+    var seconds = (i * MS_STEP_SIZE) / 1000;
+    var rem_sec = seconds % 60;
+    var mins = (seconds - rem_sec)/60;
+    
+    $("#Timer").text("{0}:{1}".format(mins, ("0" + rem_sec).slice(-2)));
+    setTimeout(function() { updateTimer(i+1); }, MS_STEP_SIZE/SPEEDUP);
 }
 
-for (var key in areas) {
-    move_area_inst(key, 0);
+var index = 0;
+var paused = false;
+
+function pause()
+{
+    paused = true;
 }
+
+function resume()
+{
+    paused = false;
+    for (var key in nodes) {
+        move_node(key, index);
+    }
+
+    for (var key in areas) {
+        move_area_inst(key, index);
+    }
+    
+    updateTimer(index);
+}
+
+function handleVisibilityChange() {
+  if (document[hidden]) {
+    pause();
+  } else {
+    resume();
+  }
+}
+
+resume();
+
 </script>   
 {% endblock %}

@@ -25,7 +25,7 @@ class Position:
                 neighbors = my_grid.neighbors((self.scaledX, self.scaledY))
                 neighbors = filter(my_grid.passable, neighbors)
                 if neighbors:
-                    self.scaledX, self.scaledY = neighbors[0] # TODO: If we're running into walls a lot look at this again
+                    self.scaledX, self.scaledY = neighbors[0] # If we're running into walls a lot look at this again
         else:
             self.x = Position.scaleX(x, False)
             self.y = Position.scaleY(y, False)
@@ -86,12 +86,6 @@ class TowerDestroyed:
         self.x = pos["x"]
         self.y = pos["y"]
         self.time = ts
-        
-def run_test():
-    with open("C:/git_stuff/riot_challenge/example_data/example_match.json") as f:
-        data = json.load(f)
-        
-    return analyze_match(data)
     
 TEAM1 = 100
 TEAM2 = 200
@@ -177,14 +171,6 @@ def analyze_match(data, granularity=5000):
                 pos_data[int(pid)].append(PlayerLocation(my_grid, frame["timestamp"], d["position"]))
                 levels[pid] = d["level"]
 
-                
-                
-    for pid, wlist in wards.iteritems():
-        for w in wlist:
-            pass
-                
-                
-
     cached_paths = CachedPaths(my_grid)
     wall_locs = []
     for pid in range(1,11):
@@ -199,9 +185,6 @@ def analyze_match(data, granularity=5000):
             for node in path:
                 full_path.append((node[0], node[1], time_start))
                 time_start += time_inc
-                
-        #ORIGINAL!
-        #pos_data[pid] = [PlayerLocation(my_grid, p[2], x=p[0], y=p[1], scaled=True) for p in full_path]
         
         interp_pos = []
         index = 0
@@ -216,27 +199,18 @@ def analyze_match(data, granularity=5000):
             w2 = 1-w1
             weights = [w1, w2]
             avg = np.append(np.average(a, 0, weights), t).tolist()
-            #print avg
+
             interp_pos.append(avg)
         pos_data[pid] = [[Position.scaleX(p[0], to=False), Position.scaleY(p[1], to=False), p[2]] for p in interp_pos]
-        #pos_data[pid] = interp_pos
+
     
     
     pos_data["champs"] = {p["participantId"] : cd.CHAMPS_BY_ID["keys"][str(p["championId"])] for p in data["participants"]}
 
-    
-    # Prints where we ran into walls
-    #print [[Position.scaleX(w[0], False), Position.scaleY(w[1], False)] for w in wall_locs]
-
-    # Prints all our estimated locations for all players
-    for pid, locs in pos_data.iteritems():
-       pass#print locs
-            
-
     for pid, ws in wards.iteritems():
         for w in ws:
             # TODO: Improve this, perhaps look at nearby bushes
-            #print w, pos_data[pid][0]
+
             loc = min(pos_data[pid], key=lambda x:abs(x[2]-w.time))
             # Gets estimated ward locations
             w.x = loc[0]
@@ -263,9 +237,6 @@ def analyze_match(data, granularity=5000):
                             if dist < min_dist:
                                 min_w = w_place
             min_w.duration = w.time - min_w.time
-            # Gets estimated ward locations
-            #w.x = min_w.x
-            #w.y = min_w.y
             
     points = {TEAM1 : [], 200 : []}
     for ts in range(0, data["matchDuration"] * 1000, granularity):
@@ -315,18 +286,5 @@ def analyze_match(data, granularity=5000):
         points[TEAM1].append(convex1)
         points[TEAM2].append(convex2)
        
-
-    #print {(pid, pid) for pid, wlist in wards.iteritems() for w in wlist if pid in range(1,6)}
-    #points = np.array(list(towers[100] | {(w.x, w.y) for pid, wlist in wards.iteritems() for w in wlist if pid in range(1,6)}))
-    #print points
-    #hull = ConvexHull(points)
-    #import matplotlib.pyplot as plt
-    #plt.plot(points[:,0], points[:,1], 'o')
-    #convex = [[points[v,0], points[v,1]] for v in hull.vertices]
-    #for simplex in hull.simplices:
-        #print simplex
-        #plt.plot(points[simplex,0], points[simplex,1], 'k-')
-    #plt.show()
-    #print convex
     pos_data["hulls"] = points
     return pos_data

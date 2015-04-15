@@ -3,6 +3,7 @@ import sys
 import inspect
 import calendar
 import datetime
+import time
 
 # Add the submodules to our path since they don't include __init__.py files in their root folders
 submodules = ["../submodules/riotwatcher"]
@@ -17,7 +18,24 @@ import riotwatcher as rw
 class MyWatcher(rw.RiotWatcher):
     def __init__(self, key):
         rw.RiotWatcher.__init__(self, key)
-
+        
+    #Throttle our requests so we don't exceed our limits (or at least not too often)
+    def base_request(self, url, region, static=False, **kwargs):
+        if not static:
+            while not self.can_make_request():
+                time.sleep(1)
+            
+        while True:
+            try:
+                data = rw.RiotWatcher.base_request(self, url, region, static, **kwargs)
+            except Exception as e:
+                if e == rw.error_429:
+                    time.sleep(5)
+                else:
+                    raise
+            else:
+                return data
+        
     # api-challenge v4.1
     # This is a temporary endpoint so create our own temporary class to handle it
     def _api_challenge_request(self, end_url, region, **kwargs):
