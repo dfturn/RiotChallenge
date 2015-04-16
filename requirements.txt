@@ -1,4 +1,8 @@
+greenlet
+gevent
 Flask-PyMongo
 Flask-WTF
-scipy
 numpy
+scipy
+Pillow
+requests

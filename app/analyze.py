@@ -7,6 +7,7 @@ import common_data as cd
 import os
 from scipy.spatial import ConvexHull
 from scipy.spatial.distance import euclidean
+from scipy.sparse import coo_matrix, csgraph
 
 dir = os.path.dirname(__file__)
 my_grid = astar.read_grid(os.path.join(dir, "../map.txt"))
@@ -93,6 +94,28 @@ def get_opposing_team(team_id):
     if team_id == TEAM1:
         return TEAM2
     return TEAM1
+    
+# Since OpenShift won't install scipy 0.15 use this to get the proper convex hull from the simplices
+# From https://gist.github.com/pv/5492551
+def ordered_hull_idx_2d(hull):
+    n = hull.simplices.shape[0]
+    
+    # determine order of edges in the convex hull
+    v = coo_matrix((np.ones(2*n), (np.repeat(np.arange(n), 2), hull.neighbors.ravel())))
+    facet_order = csgraph.depth_first_order(v, 0, return_predecessors=False)
+    facet_vidx = hull.simplices[facet_order]
+    
+    # pick one vertex for each edge, based on which direction the walk went
+    m = hull.neighbors[facet_order][:-1] == facet_order[1:,None]
+    i = np.arange(n)
+    j = np.r_[np.where(m)[1], 0] 
+    
+    ordered_vertex_idx = facet_vidx[i, j]
+    
+    # sanity check
+    assert np.all(np.unique(ordered_vertex_idx) == np.unique(hull.simplices.ravel()))
+ 
+    return ordered_vertex_idx
     
 def analyze_match(data, granularity=5000):
 
@@ -280,11 +303,16 @@ def analyze_match(data, granularity=5000):
         hull1 = ConvexHull(hull_test1)
         hull2 = ConvexHull(hull_test2)
         
-        convex1 = [[hull_test1[v,0], hull_test1[v,1]] for v in hull1.vertices]
-        convex2 = [[hull_test2[v,0], hull_test2[v,1]] for v in hull2.vertices]
+        hull_idx = ordered_hull_idx_2d(hull1)
+        hull_idx = np.r_[hull_idx, hull_idx[0]]
+        hull_pts1 = hull_test1[hull_idx].tolist()
         
-        points[TEAM1].append(convex1)
-        points[TEAM2].append(convex2)
+        hull_idx = ordered_hull_idx_2d(hull2)
+        hull_idx = np.r_[hull_idx, hull_idx[0]]
+        hull_pts2 = hull_test2[hull_idx].tolist()
+        
+        points[TEAM1].append(hull_pts1)
+        points[TEAM2].append(hull_pts2)
        
     pos_data["hulls"] = points
     return pos_data
