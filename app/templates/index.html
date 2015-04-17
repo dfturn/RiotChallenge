@@ -2,10 +2,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<input type="button" value="Pause" onclick="pause()">
-<input type="button" value="Resume" onclick="resume()">
-<p id="Timer"></p><br/>
-<div id="map">
+
+    <nav class="navbar-outer">
+      <div class="navbar navbar-default">
+        <button id="toggler" type="button" class="btn btn-default navbar-btn" onclick="toggle()">Pause</button>
+        <p id="Timer" class="navbar-text"></p>
+      </div>
+    </nav>
+
+    <div id="map"></div>
 </div>
 <script src="/static/js/d3.js"></script>
 <script>
@@ -143,13 +148,25 @@ var updateTimer = function(i) {
 var index = 0;
 var paused = false;
 
+function toggle()
+{
+    if (paused) {
+        resume();
+    }
+    else {
+        pause();
+    }
+}
+
 function pause()
 {
+    $("#toggler").text("Resume");
     paused = true;
 }
 
 function resume()
 {
+    $("#toggler").text("Pause");
     paused = false;
     for (var key in nodes) {
         move_node(key, index);

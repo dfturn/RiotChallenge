@@ -1,28 +1,49 @@
 <!DOCTYPE html>
+
 <html>
   <head>
+    {% import "bootstrap/wtf.html" as wtf %}
+    
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
     <title>LoL Map Control Analysis</title>
-    <link href="/static/css/bootstrap.min.css" rel="stylesheet" media="screen">
-    <link href="/static/css/bootstrap-responsive.min.css" rel="stylesheet">
-    <link href="/static/css/mine.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/mine.css">
     <script src="http://code.jquery.com/jquery-latest.js"></script>
-    <script src="/static/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
-      <form action="" method="post" name="login">
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.match_id(size=80) }}
-            {% for error in form.match_id.errors %}
-              <span style="color: red;">[{{error}}]</span>
-            {% endfor %}
-        </p>
-        <p><input type="submit" value="Analyze"></p>
-      </form>
-  
-      {% block content %}{% endblock %}
+      <div class="container">
+        <h1>Map Control Analysis</h1>
+      
+        <nav class="navbar-outer">
+            <form class="navbar-form" role="form" method="post">
+              <div class="form-group" style="display:inline;">
+                  {{ form.hidden_tag() }}
+                  <input type="text" class="form-control" placeholder="Match/Summoner Name" id="match_id" name="match_id">
+                  <button type="submit" class="btn btn-default">Analyze</button>
+              </div>
+            </form>
+        </nav>
+                      
+          
+        {% block content %}{% endblock %}
+        
+        <footer class="footer">
+          <div class="container">
+            <nav class="navbar-outer">
+                <p class="text-muted">LoL Map Control Analysis isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends.
+                    League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc.</p>
+            </nav>
+          </div>
+        </footer>
+
+      </div>
   </body>
 </html>

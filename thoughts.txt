@@ -1,7 +1,0 @@
-Openshift MongoDB config:
-
-   Root User:     admin
-   Root Password: AhUUXfCae-yD
-   Database Name: python
-
-Connection URL: mongodb://$OPENSHIFT_MONGODB_DB_HOST:$OPENSHIFT_MONGODB_DB_PORT/

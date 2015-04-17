@@ -1,11 +1,8 @@
-#map svg {
-    position: relative;
-    top: 0;
-    left: 0;
+.navbar-outer {
+  width:512px;
 }
 
-#map img {
-     position: relative;
-    top: 0;
-    left: 0;   
+.navbar-centered {
+    margin-left: auto;
+    margin-right: auto;
 }
