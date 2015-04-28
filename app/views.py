@@ -22,7 +22,7 @@ def index(val=None):
     exception = None
     
     if form.validate_on_submit():
-        return redirect('/{0}'.format(form.match_id.data))
+        return redirect(u'/{0}'.format(form.match_id.data))
         
     # Default to a game to make it easier for them
     if val == None:

@@ -160,7 +160,7 @@ def analyze_match(data, granularity=5000):
                     if "assistingParticipantIds" in e:
                         for p in e["assistingParticipantIds"]:
                             pos_data[p].append(loc)
-                elif e["eventType"] == "WARD_PLACED":
+                elif e["eventType"] == "WARD_PLACED" and e["creatorId"] > 0: # Can't guess location if not player
                     pid = e["creatorId"]
                     if pid not in wards:
                         wards[pid] = []
@@ -252,13 +252,14 @@ def analyze_match(data, granularity=5000):
             min_dist = float("inf")
             min_w = None
             for enemy in rng:
-                for w_place in wards[enemy]:
-                    if w_place.type == w.type:
-                        diff = w.time - w_place.time
-                        if diff >=0 and diff < w_place.duration:
-                            dist = euclidean([w_place.x, w_place.y], [loc[0], loc[1]])
-                            if dist < min_dist:
-                                min_w = w_place
+                if enemy in wards:
+                    for w_place in wards[enemy]:
+                        if w_place.type == w.type:
+                            diff = w.time - w_place.time
+                            if diff >=0 and diff < w_place.duration:
+                                dist = euclidean([w_place.x, w_place.y], [loc[0], loc[1]])
+                                if dist < min_dist:
+                                    min_w = w_place
             min_w.duration = w.time - min_w.time
             
     points = {TEAM1 : [], 200 : []}
