@@ -1,3 +1,6 @@
+# OBSOLETE.
+Demo is no longer running.
+
 # Map Control Analysis
 My submission for the Riot Developer challenge is a sort of replay system utilizing the timeline data from
 match data retrieved from the Riot API. This is more of a concept application to explore the potential of
